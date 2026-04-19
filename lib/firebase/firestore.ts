@@ -8,7 +8,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   onSnapshot,
   serverTimestamp,
   Timestamp,
@@ -87,9 +86,10 @@ export async function getSite(siteId: string): Promise<Site | null> {
 }
 
 export async function getUserSites(uid: string): Promise<Site[]> {
-  const q = query(sitesCol(), where('ownerId', '==', uid), orderBy('createdAt', 'desc'));
+  const q = query(sitesCol(), where('ownerId', '==', uid));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => fromFirestoreSite(d.id, d.data()));
+  const sites = snap.docs.map((d) => fromFirestoreSite(d.id, d.data()));
+  return sites.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
 }
 
 export async function createSite(siteId: string, data: Omit<Site, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
@@ -121,9 +121,11 @@ export async function deleteSite(siteId: string): Promise<void> {
 // ---- Realtime subscriptions ----
 
 export function subscribeToUserSites(uid: string, onUpdate: (sites: Site[]) => void) {
-  const q = query(sitesCol(), where('ownerId', '==', uid), orderBy('createdAt', 'desc'));
+  const q = query(sitesCol(), where('ownerId', '==', uid));
   return onSnapshot(q, (snap) => {
-    const sites = snap.docs.map((d) => fromFirestoreSite(d.id, d.data()));
+    const sites = snap.docs
+      .map((d) => fromFirestoreSite(d.id, d.data()))
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
     onUpdate(sites);
   });
 }
