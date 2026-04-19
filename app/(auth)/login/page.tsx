@@ -8,7 +8,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { SignifikLogo } from '@/components/ui/SignifikLogo';
 import { signIn, signInWithGoogle, getGoogleRedirectResult, createSession, getIdToken } from '@/lib/firebase/auth';
-import { createUser } from '@/lib/firebase/firestore';
 import { useToast } from '@/components/ui/Toast';
 import { useLang } from '@/lib/i18n/context';
 
@@ -31,6 +30,15 @@ function firebaseErrorToHebrew(code: string): string {
   }
 }
 
+async function doSession(): Promise<void> {
+  const token = await getIdToken();
+  if (token) {
+    await createSession(token).catch(() => {
+      // session API failure is non-fatal — user is authenticated in Firebase
+    });
+  }
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,21 +48,11 @@ export default function LoginPage() {
   const { error } = useToast();
   const { t } = useLang();
 
-  // Handle Google redirect result on page load
   useEffect(() => {
     getGoogleRedirectResult()
       .then(async (user) => {
         if (!user) { setGoogleLoading(false); return; }
-        await createUser(user.uid, {
-          email: user.email ?? '',
-          displayName: user.displayName ?? '',
-          createdAt: new Date().toISOString(),
-        }).catch(() => {});
-        const token = await getIdToken();
-        if (token) {
-          const res = await createSession(token);
-          if (!res.ok) throw new Error('session_failed');
-        }
+        await doSession();
         router.push('/dashboard');
       })
       .catch(() => setGoogleLoading(false));
@@ -64,17 +62,14 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      // This can throw — only Firebase Auth errors should show a message
       await signIn(email, password);
-      const token = await getIdToken();
-      if (token) {
-        const res = await createSession(token);
-        if (!res.ok) throw new Error('session');
-      }
+      // Session is best-effort; don't let it block navigation
+      await doSession();
       router.push('/dashboard');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
       error('כניסה נכשלה', firebaseErrorToHebrew(code));
-    } finally {
       setLoading(false);
     }
   };
@@ -82,21 +77,12 @@ export default function LoginPage() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      const user = await signInWithGoogle();
-      await createUser(user.uid, {
-        email: user.email ?? '',
-        displayName: user.displayName ?? '',
-        createdAt: new Date().toISOString(),
-      }).catch(() => {});
-      const token = await getIdToken();
-      if (token) {
-        const res = await createSession(token);
-        if (!res.ok) throw new Error('session');
-      }
+      await signInWithGoogle();
+      await doSession();
       router.push('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
-      if (msg === 'REDIRECT') return; // page will reload — useEffect handles it
+      if (msg === 'REDIRECT') return;
       error('כניסה עם Google נכשלה', 'נסה שנית');
       setGoogleLoading(false);
     }
@@ -104,17 +90,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen liquid-bg flex items-center justify-center p-4">
-      {/* Back to home */}
       <Link href="/" className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/70 transition-colors">
         <ArrowLeft size={15} />
         <span>חזרה</span>
       </Link>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4"><SignifikLogo height={44} /></div>
           <p className="text-white/40 text-sm mt-1">{t.login_title}</p>
@@ -151,9 +132,7 @@ export default function LoginPage() {
             <div className="space-y-1">
               <Input label={t.login_password} type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
               <div className="flex justify-end">
-                <a href="/reset-password" className="text-xs text-white/30 hover:text-indigo-400 transition-colors">
-                  {t.login_forgot}
-                </a>
+                <a href="/reset-password" className="text-xs text-white/30 hover:text-indigo-400 transition-colors">{t.login_forgot}</a>
               </div>
             </div>
             <Button type="submit" loading={loading} className="w-full mt-2" size="lg">{t.login_submit}</Button>
