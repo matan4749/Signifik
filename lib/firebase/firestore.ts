@@ -120,7 +120,11 @@ export async function deleteSite(siteId: string): Promise<void> {
 
 // ---- Realtime subscriptions ----
 
-export function subscribeToUserSites(uid: string, onUpdate: (sites: Site[]) => void) {
+export function subscribeToUserSites(
+  uid: string,
+  onUpdate: (sites: Site[]) => void,
+  onError?: () => void
+) {
   const q = query(sitesCol(), where('ownerId', '==', uid));
   return onSnapshot(
     q,
@@ -131,8 +135,8 @@ export function subscribeToUserSites(uid: string, onUpdate: (sites: Site[]) => v
       onUpdate(sites);
     },
     () => {
-      // Firestore permission/network error — return empty list instead of crashing
       onUpdate([]);
+      onError?.();
     }
   );
 }

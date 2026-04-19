@@ -16,10 +16,18 @@ export function useSites(uid: string | undefined) {
     }
 
     setLoading(true);
-    const unsubscribe = subscribeToUserSites(uid, (updatedSites) => {
-      setSites(updatedSites);
-      setLoading(false);
-    });
+    const unsubscribe = subscribeToUserSites(
+      uid,
+      (updatedSites) => {
+        setSites(updatedSites);
+        setLoading(false);
+      },
+      () => {
+        // Firestore unavailable (not enabled / permission error)
+        setSites([]);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [uid]);
