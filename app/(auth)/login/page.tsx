@@ -1,25 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-
+import { ArrowLeft } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { SignifikLogo } from '@/components/ui/SignifikLogo';
-import { signIn, signInWithGoogle, createSession, getIdToken } from '@/lib/firebase/auth';
+import { signIn, signInWithGoogle, getGoogleRedirectResult, createSession, getIdToken } from '@/lib/firebase/auth';
 import { createUser } from '@/lib/firebase/firestore';
 import { useToast } from '@/components/ui/Toast';
 import { useLang } from '@/lib/i18n/context';
+
+function firebaseErrorToHebrew(code: string): string {
+  switch (code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'האימייל או הסיסמה שגויים';
+    case 'auth/invalid-email':
+      return 'כתובת אימייל לא תקינה';
+    case 'auth/too-many-requests':
+      return 'יותר מדי ניסיונות. נסה שוב מאוחר יותר';
+    case 'auth/user-disabled':
+      return 'החשבון הזה מושבת';
+    case 'auth/network-request-failed':
+      return 'בעיית רשת. בדוק את החיבור לאינטרנט';
+    default:
+      return 'שגיאה בהתחברות. נסה שנית';
+  }
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(true);
   const router = useRouter();
   const { error } = useToast();
   const { t } = useLang();
+
+  // Handle Google redirect result on page load
+  useEffect(() => {
+    getGoogleRedirectResult()
+      .then(async (user) => {
+        if (!user) { setGoogleLoading(false); return; }
+        await createUser(user.uid, {
+          email: user.email ?? '',
+          displayName: user.displayName ?? '',
+          createdAt: new Date().toISOString(),
+        }).catch(() => {});
+        const token = await getIdToken();
+        if (token) {
+          const res = await createSession(token);
+          if (!res.ok) throw new Error('session_failed');
+        }
+        router.push('/dashboard');
+      })
+      .catch(() => setGoogleLoading(false));
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +66,14 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       const token = await getIdToken();
-      if (token) await createSession(token);
+      if (token) {
+        const res = await createSession(token);
+        if (!res.ok) throw new Error('session');
+      }
       router.push('/dashboard');
     } catch (err: unknown) {
-      error('Sign in failed', err instanceof Error ? err.message : 'Check your credentials');
+      const code = (err as { code?: string }).code ?? '';
+      error('כניסה נכשלה', firebaseErrorToHebrew(code));
     } finally {
       setLoading(false);
     }
@@ -46,17 +89,27 @@ export default function LoginPage() {
         createdAt: new Date().toISOString(),
       }).catch(() => {});
       const token = await getIdToken();
-      if (token) await createSession(token);
+      if (token) {
+        const res = await createSession(token);
+        if (!res.ok) throw new Error('session');
+      }
       router.push('/dashboard');
     } catch (err: unknown) {
-      error('Google sign in failed', err instanceof Error ? err.message : 'Please try again');
-    } finally {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'REDIRECT') return; // page will reload — useEffect handles it
+      error('כניסה עם Google נכשלה', 'נסה שנית');
       setGoogleLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen liquid-bg flex items-center justify-center p-4">
+      {/* Back to home */}
+      <Link href="/" className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/70 transition-colors">
+        <ArrowLeft size={15} />
+        <span>חזרה</span>
+      </Link>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -68,7 +121,6 @@ export default function LoginPage() {
         </div>
 
         <div className="glass rounded-2xl p-6 space-y-4">
-          {/* Google button */}
           <button
             type="button"
             onClick={handleGoogle}
@@ -88,44 +140,22 @@ export default function LoginPage() {
             {t.auth_google}
           </button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-white/10" />
             <span className="text-xs text-white/25">{t.auth_or}</span>
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          {/* Email/password form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label={t.login_email}
-              type="email"
-              placeholder={t.login_email_placeholder}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-            <Input
-              label={t.login_password}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-            <Button type="submit" loading={loading} className="w-full mt-2" size="lg">
-              {t.login_submit}
-            </Button>
+            <Input label={t.login_email} type="email" placeholder={t.login_email_placeholder} value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            <Input label={t.login_password} type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+            <Button type="submit" loading={loading} className="w-full mt-2" size="lg">{t.login_submit}</Button>
           </form>
         </div>
 
         <p className="text-center text-sm text-white/40 mt-6">
           {t.login_no_account}{' '}
-          <Link href="/signup" className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
-            {t.login_create}
-          </Link>
+          <Link href="/signup" className="text-indigo-400 hover:text-indigo-300 transition-colors font-medium">{t.login_create}</Link>
         </p>
       </motion.div>
     </div>

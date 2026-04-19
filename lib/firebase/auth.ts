@@ -8,6 +8,8 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   type User,
 } from 'firebase/auth';
 import { auth } from './client';
@@ -34,18 +36,36 @@ export async function resetPassword(email: string): Promise<void> {
 
 export async function signInWithGoogle(): Promise<User> {
   const provider = new GoogleAuthProvider();
-  const cred = await signInWithPopup(auth, provider);
-  return cred.user;
+  provider.addScope('email');
+  provider.addScope('profile');
+  try {
+    const cred = await signInWithPopup(auth, provider);
+    return cred.user;
+  } catch (err: unknown) {
+    const code = (err as { code?: string }).code;
+    // Only redirect when popup is truly blocked (not when user closed it)
+    if (code === 'auth/popup-blocked') {
+      await signInWithRedirect(auth, provider);
+      throw new Error('REDIRECT');
+    }
+    throw err;
+  }
+}
+
+export async function getGoogleRedirectResult(): Promise<User | null> {
+  const result = await getRedirectResult(auth);
+  return result?.user ?? null;
 }
 
 export async function getIdToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
-  return user.getIdToken();
+  // Force refresh to get a fresh token (required for createSessionCookie)
+  return user.getIdToken(true);
 }
 
-export async function createSession(token: string): Promise<void> {
-  await fetch('/api/auth/session', {
+export async function createSession(token: string): Promise<Response> {
+  return fetch('/api/auth/session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
