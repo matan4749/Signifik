@@ -16,11 +16,19 @@ export function useSubscription(uid: string | undefined) {
       return;
     }
 
-    const unsubscribe = onSnapshot(doc(db, 'users', uid), (snap) => {
-      const data = snap.data();
-      setSubscription(data?.subscription ?? null);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', uid),
+      (snap) => {
+        const data = snap.data();
+        setSubscription(data?.subscription ?? null);
+        setLoading(false);
+      },
+      () => {
+        // Firestore permission error or network error — treat as no subscription
+        setSubscription(null);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [uid]);

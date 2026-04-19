@@ -122,12 +122,19 @@ export async function deleteSite(siteId: string): Promise<void> {
 
 export function subscribeToUserSites(uid: string, onUpdate: (sites: Site[]) => void) {
   const q = query(sitesCol(), where('ownerId', '==', uid));
-  return onSnapshot(q, (snap) => {
-    const sites = snap.docs
-      .map((d) => fromFirestoreSite(d.id, d.data()))
-      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
-    onUpdate(sites);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const sites = snap.docs
+        .map((d) => fromFirestoreSite(d.id, d.data()))
+        .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
+      onUpdate(sites);
+    },
+    () => {
+      // Firestore permission/network error — return empty list instead of crashing
+      onUpdate([]);
+    }
+  );
 }
 
 export function subscribeToSite(siteId: string, onUpdate: (site: Site | null) => void) {

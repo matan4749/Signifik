@@ -14,10 +14,12 @@ import { useLang } from '@/lib/i18n/context';
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const { sites, loading } = useSites(user?.uid);
+  const { user, loading: authLoading } = useAuth();
+  const { sites, loading: sitesLoading } = useSites(user?.uid);
   const canCreateMore = sites.length < MAX_SITES_PER_USER;
   const { t } = useLang();
+
+  const loading = authLoading || sitesLoading;
 
   return (
     <motion.div
@@ -32,9 +34,9 @@ export default function DashboardPage() {
 
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-white/30">
-          {t.dashboard_sites_count(sites.length, MAX_SITES_PER_USER)}
+          {!loading && t.dashboard_sites_count(sites.length, MAX_SITES_PER_USER)}
         </p>
-        {canCreateMore && (
+        {!loading && canCreateMore && (
           <Link href="/builder">
             <Button size="sm" icon={<Plus size={14} />}>{t.dashboard_new_site}</Button>
           </Link>
