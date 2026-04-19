@@ -148,7 +148,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input label={t.login_email} type="email" placeholder={t.login_email_placeholder} value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-            <Input label={t.login_password} type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+            <div className="space-y-1">
+              <Input label={t.login_password} type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+              <div className="flex justify-end">
+                <a href="/reset-password" className="text-xs text-white/30 hover:text-indigo-400 transition-colors">
+                  {t.login_forgot}
+                </a>
+              </div>
+            </div>
             <Button type="submit" loading={loading} className="w-full mt-2" size="lg">{t.login_submit}</Button>
           </form>
         </div>
