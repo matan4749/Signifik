@@ -31,3 +31,18 @@ export function getAdminAuth() {
 export function getAdminFirestore() {
   return getFirestore(getAdminApp());
 }
+
+/**
+ * Verifies a session cookie OR a raw ID token (fallback path).
+ * Returns the decoded token with uid, or throws.
+ */
+export async function verifySession(sessionValue: string) {
+  const adminAuth = getAdminAuth();
+  // Try session cookie first (the happy path)
+  try {
+    return await adminAuth.verifySessionCookie(sessionValue, true);
+  } catch {
+    // Fall back to ID token verification (used when createSessionCookie failed)
+    return await adminAuth.verifyIdToken(sessionValue, true);
+  }
+}

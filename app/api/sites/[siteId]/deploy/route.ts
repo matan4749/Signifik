@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getAdminAuth, getAdminFirestore } from '@/lib/firebase/admin';
+import { verifySession, getAdminFirestore } from '@/lib/firebase/admin';
 import { deploySite } from '@/lib/vercel/deploy';
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ siteId: string }> }) {
@@ -10,8 +10,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ si
     const sessionCookie = cookieStore.get('session')?.value;
     if (!sessionCookie) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const adminAuth = getAdminAuth();
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const decoded = await verifySession(sessionCookie);
     const uid = decoded.uid;
 
     const db = getAdminFirestore();

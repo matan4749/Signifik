@@ -1,21 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getAdminAuth, getAdminFirestore } from '@/lib/firebase/admin';
+import { verifySession, getAdminFirestore } from '@/lib/firebase/admin';
 import { deploySite } from '@/lib/vercel/deploy';
 import { sendNewSiteLaunchedEmail } from '@/lib/sendgrid/notifications';
 import { addDomainToProject } from '@/lib/vercel/domains';
-import type { CreateSitePayload } from '@/types/site';
+import type { CreateSitePayload, Site } from '@/types/site';
+
+async function getUid(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
+  if (!session) return null;
+  try {
+    const decoded = await verifySession(session);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET() {
+  const uid = await getUid();
+  if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const db = getAdminFirestore();
+    const snap = await db.collection('sites').where('ownerId', '==', uid).get();
+    const sites = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() } as Site))
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
+    return NextResponse.json({ sites });
+  } catch (err) {
+    console.error('GET /api/sites error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
+  const uid = await getUid();
+  if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session')?.value;
-    if (!sessionCookie) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const adminAuth = getAdminAuth();
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const uid = decoded.uid;
-
     const body = (await req.json()) as CreateSitePayload;
     const { config, slug, customDomain } = body;
 
@@ -25,15 +49,7 @@ export async function POST(req: NextRequest) {
 
     const db = getAdminFirestore();
 
-    // Check subscription
-    const userDoc = await db.collection('users').doc(uid).get();
-    const userData = userDoc.data();
-    const subStatus = userData?.subscription?.status;
-    if (subStatus && !['trialing', 'active'].includes(subStatus)) {
-      return NextResponse.json({ error: 'Active subscription required' }, { status: 403 });
-    }
-
-    // Check site limit
+    // Check site limit (skip subscription check — billing coming soon)
     const existingSites = await db.collection('sites').where('ownerId', '==', uid).get();
     if (existingSites.size >= 3) {
       return NextResponse.json({ error: 'Site limit reached (max 3)' }, { status: 403 });
@@ -41,7 +57,6 @@ export async function POST(req: NextRequest) {
 
     const siteId = nanoid();
 
-    // Create site in Firestore with pending status
     await db.collection('sites').doc(siteId).set({
       id: siteId,
       ownerId: uid,
@@ -54,18 +69,17 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     });
 
-    // Deploy asynchronously - update status in background
+    // Deploy asynchronously
+    const userDoc = await db.collection('users').doc(uid).get();
+    const userData = userDoc.data();
+
     (async () => {
       try {
         await db.collection('sites').doc(siteId).update({ 'deployment.status': 'building' });
         const { projectId, deploymentId, url } = await deploySite(config, siteId, slug);
 
         if (customDomain) {
-          try {
-            await addDomainToProject(projectId, customDomain);
-          } catch {
-            // Non-fatal: domain might need manual DNS setup
-          }
+          try { await addDomainToProject(projectId, customDomain); } catch { /* non-fatal */ }
         }
 
         await db.collection('sites').doc(siteId).update({
@@ -77,10 +91,9 @@ export async function POST(req: NextRequest) {
           updatedAt: new Date().toISOString(),
         });
 
-        // Send admin notification
         await sendNewSiteLaunchedEmail({
-          customerName: userData?.displayName || decoded.email || 'Customer',
-          customerEmail: decoded.email || '',
+          customerName: userData?.displayName || '',
+          customerEmail: userData?.email || '',
           businessName: config.businessName,
           siteUrl: url,
           siteId,
@@ -95,13 +108,12 @@ export async function POST(req: NextRequest) {
     })();
 
     return NextResponse.json({ siteId }, { status: 201 });
-  } catch (error) {
-    console.error('Create site error:', error);
+  } catch (err) {
+    console.error('POST /api/sites error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// Avoid importing nanoid as ESM-only; use crypto instead
 function nanoid(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 20);
 }

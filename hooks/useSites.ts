@@ -1,36 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { subscribeToUserSites } from '@/lib/firebase/firestore';
+import { useState, useEffect, useCallback } from 'react';
 import type { Site } from '@/types/site';
 
 export function useSites(uid: string | undefined) {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchSites = useCallback(async () => {
     if (!uid) {
       setSites([]);
       setLoading(false);
       return;
     }
-
-    setLoading(true);
-    const unsubscribe = subscribeToUserSites(
-      uid,
-      (updatedSites) => {
-        setSites(updatedSites);
-        setLoading(false);
-      },
-      () => {
-        // Firestore unavailable (not enabled / permission error)
+    try {
+      const res = await fetch('/api/sites');
+      if (res.ok) {
+        const data = await res.json();
+        setSites(data.sites ?? []);
+      } else {
         setSites([]);
-        setLoading(false);
       }
-    );
-
-    return unsubscribe;
+    } catch {
+      setSites([]);
+    } finally {
+      setLoading(false);
+    }
   }, [uid]);
 
-  return { sites, loading };
+  useEffect(() => {
+    setLoading(true);
+    fetchSites();
+  }, [fetchSites]);
+
+  return { sites, loading, refetch: fetchSites };
 }

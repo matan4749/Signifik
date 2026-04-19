@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getAdminAuth, getAdminFirestore } from '@/lib/firebase/admin';
+import { verifySession, getAdminFirestore } from '@/lib/firebase/admin';
 import type { UpdateSitePayload } from '@/types/site';
 
 async function getAuthorizedUid(siteId: string): Promise<{ uid: string; error?: never } | { uid?: never; error: NextResponse }> {
@@ -8,8 +8,7 @@ async function getAuthorizedUid(siteId: string): Promise<{ uid: string; error?: 
   const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
 
-  const adminAuth = getAdminAuth();
-  const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+  const decoded = await verifySession(sessionCookie);
   const uid = decoded.uid;
 
   const db = getAdminFirestore();
