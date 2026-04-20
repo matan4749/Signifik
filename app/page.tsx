@@ -1,28 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, Globe, Zap, Shield, Palette, Rocket, Phone } from 'lucide-react';
 import { Navbar } from '@/components/marketing/Navbar';
 import { Button } from '@/components/ui';
 import { APP_NAME } from '@/lib/utils/constants';
 import { useLang } from '@/lib/i18n/context';
-import { useAuth } from '@/hooks/useAuth';
 
 const featureIcons = [Zap, Palette, Phone, Globe, Shield, Rocket];
 
 export default function HomePage() {
   const { t } = useLang();
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  // If already authenticated, go straight to dashboard
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace('/dashboard');
-    }
-  }, [user, loading, router]);
 
   const features = [
     { icon: featureIcons[0], title: t.feature_1_title, description: t.feature_1_desc },
@@ -45,15 +33,6 @@ export default function HomePage() {
   ];
 
   const niches = t.niches.split(' / ');
-
-  // Show spinner while checking auth, don't flash the marketing page
-  if (loading || user) {
-    return (
-      <div className="min-h-screen liquid-bg flex items-center justify-center">
-        <span className="h-6 w-6 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen liquid-bg text-white">
