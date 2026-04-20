@@ -46,8 +46,14 @@ export default function HomePage() {
 
   const niches = t.niches.split(' / ');
 
-  // Don't flash marketing page while checking auth
-  if (loading || user) return null;
+  // Show spinner while checking auth, don't flash the marketing page
+  if (loading || user) {
+    return (
+      <div className="min-h-screen liquid-bg flex items-center justify-center">
+        <span className="h-6 w-6 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen liquid-bg text-white">

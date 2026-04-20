@@ -15,8 +15,17 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     }
   }, [user, loading, router]);
 
-  // Don't flash auth form to an already-signed-in user
-  if (loading || user) return null;
+  // Show a minimal spinner while checking auth — never a blank screen
+  if (loading) {
+    return (
+      <div className="min-h-screen liquid-bg flex items-center justify-center">
+        <span className="h-6 w-6 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+      </div>
+    );
+  }
+
+  // Authenticated: redirect happening, show nothing meanwhile
+  if (user) return null;
 
   return <>{children}</>;
 }

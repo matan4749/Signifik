@@ -39,6 +39,7 @@ export function SiteImageEditor({ siteId, media, hasGallery, onChange }: SiteIma
       // Persist immediately via PATCH
       await fetch(`/api/sites/${siteId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: { media: next } }),
       });
