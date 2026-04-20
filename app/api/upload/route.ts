@@ -53,9 +53,8 @@ export async function POST(req: NextRequest) {
     const filename = `${Date.now()}.${ext}`;
     const storagePath = `sites/${uid}/${siteId}/${type}/${filename}`;
 
-    const bucket = getStorage(getAdminApp()).bucket(
-      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    );
+    const bucket = getStorage(getAdminApp()).bucket();
+    console.log('[upload] bucket name:', bucket.name, '| env:', process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const fileRef = bucket.file(storagePath);
