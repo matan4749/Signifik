@@ -30,14 +30,18 @@ function firebaseErrorToHebrew(code: string): string {
   }
 }
 
-/** Creates server session cookie. Throws if it fails — caller must handle. */
-async function createServerSession(): Promise<void> {
-  const token = await getIdToken();
-  if (!token) throw new Error('No Firebase token');
-  const res = await createSession(token);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `Session API ${res.status}`);
+/**
+ * Best-effort: write the httpOnly session cookie.
+ * If it fails for any reason we still navigate — Firebase Auth client state
+ * is valid, and the middleware will fall back to re-checking on the next hard load.
+ */
+async function tryCreateSession(): Promise<void> {
+  try {
+    const token = await getIdToken();
+    if (!token) return;
+    await createSession(token);
+  } catch {
+    // Non-fatal — user is authenticated in Firebase even without the cookie
   }
 }
 
@@ -55,23 +59,18 @@ export default function LoginPage() {
     getGoogleRedirectResult()
       .then(async (user) => {
         if (!user) { setGoogleLoading(false); return; }
-        try {
-          await createServerSession();
-          router.replace('/dashboard');
-        } catch (e) {
-          error('כניסה נכשלה', e instanceof Error ? e.message : 'נסה שנית');
-          setGoogleLoading(false);
-        }
+        await tryCreateSession();
+        router.replace('/dashboard');
       })
       .catch(() => setGoogleLoading(false));
-  }, [router, error]);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await signIn(email, password);
-      await createServerSession();
+      await tryCreateSession();
       router.replace('/dashboard');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
@@ -84,11 +83,11 @@ export default function LoginPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      await createServerSession();
+      await tryCreateSession();
       router.replace('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
-      if (msg === 'REDIRECT') return; // redirect flow — page will reload
+      if (msg === 'REDIRECT') return;
       error('כניסה עם Google נכשלה', msg || 'נסה שנית');
       setGoogleLoading(false);
     }

@@ -5,19 +5,21 @@ const AUTH_PATHS = ['/login', '/signup', '/reset-password'];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const sessionCookie = req.cookies.get('session')?.value;
+  const session = req.cookies.get('session')?.value;
 
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
   const isAuthPath = AUTH_PATHS.some((p) => pathname.startsWith(p));
 
-  // No session → redirect to login (no ?from param to avoid redirect loops)
-  if (isProtected && !sessionCookie) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  // Redirect authenticated users away from auth pages
+  if (isAuthPath && session) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  // Has session on auth page → go to dashboard
-  if (isAuthPath && sessionCookie) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+  // For protected paths: if no session cookie at all, redirect to login.
+  // If there IS a session cookie (even if potentially expired), let the page load —
+  // the page-level useAuth() will catch an invalid session and redirect.
+  if (isProtected && !session) {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   return NextResponse.next();

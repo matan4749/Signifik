@@ -8,15 +8,15 @@ import { ArrowLeft } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { SignifikLogo } from '@/components/ui/SignifikLogo';
 import { signUp, signInWithGoogle, getGoogleRedirectResult, createSession, getIdToken } from '@/lib/firebase/auth';
-// createServerSession uses createSession + getIdToken internally
+// tryCreateSession uses createSession + getIdToken internally
 
-async function createServerSession(): Promise<void> {
-  const token = await getIdToken();
-  if (!token) throw new Error('No Firebase token');
-  const res = await createSession(token);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `Session API ${res.status}`);
+async function tryCreateSession(): Promise<void> {
+  try {
+    const token = await getIdToken();
+    if (!token) return;
+    await createSession(token);
+  } catch {
+    // Non-fatal — user is authenticated in Firebase even without the cookie
   }
 }
 import { useToast } from '@/components/ui/Toast';
@@ -52,7 +52,7 @@ export default function SignupPage() {
       .then(async (user) => {
         if (!user) { setGoogleLoading(false); return; }
         try {
-          await createServerSession();
+          await tryCreateSession();
           fetch('/api/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -76,7 +76,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signUp(email, password, name);
-      await createServerSession();
+      await tryCreateSession();
       fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +94,7 @@ export default function SignupPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      await createServerSession();
+      await tryCreateSession();
       router.replace('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
