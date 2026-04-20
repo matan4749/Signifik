@@ -8,6 +8,17 @@ import { ArrowLeft } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { SignifikLogo } from '@/components/ui/SignifikLogo';
 import { signUp, signInWithGoogle, getGoogleRedirectResult, createSession, getIdToken } from '@/lib/firebase/auth';
+// createServerSession uses createSession + getIdToken internally
+
+async function createServerSession(): Promise<void> {
+  const token = await getIdToken();
+  if (!token) throw new Error('No Firebase token');
+  const res = await createSession(token);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `Session API ${res.status}`);
+  }
+}
 import { useToast } from '@/components/ui/Toast';
 import { useLang } from '@/lib/i18n/context';
 
@@ -26,13 +37,6 @@ function firebaseErrorToHebrew(code: string): string {
   }
 }
 
-async function doSession(): Promise<void> {
-  const token = await getIdToken();
-  if (token) {
-    await createSession(token).catch(() => {});
-  }
-}
-
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,16 +51,21 @@ export default function SignupPage() {
     getGoogleRedirectResult()
       .then(async (user) => {
         if (!user) { setGoogleLoading(false); return; }
-        await doSession();
-        fetch('/api/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'welcome', name: user.displayName ?? '', email: user.email ?? '' }),
-        }).catch(() => {});
-        router.push('/dashboard');
+        try {
+          await createServerSession();
+          fetch('/api/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'welcome', name: user.displayName ?? '', email: user.email ?? '' }),
+          }).catch(() => {});
+          router.replace('/dashboard');
+        } catch (e) {
+          error('כניסה נכשלה', e instanceof Error ? e.message : 'נסה שנית');
+          setGoogleLoading(false);
+        }
       })
       .catch(() => setGoogleLoading(false));
-  }, [router]);
+  }, [router, error]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,13 +76,13 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signUp(email, password, name);
-      await doSession();
+      await createServerSession();
       fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'welcome', name, email }),
       }).catch(() => {});
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
       error('הרשמה נכשלה', firebaseErrorToHebrew(code));
@@ -85,12 +94,12 @@ export default function SignupPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      await doSession();
-      router.push('/dashboard');
+      await createServerSession();
+      router.replace('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg === 'REDIRECT') return;
-      error('הרשמה עם Google נכשלה', 'נסה שנית');
+      error('הרשמה עם Google נכשלה', msg || 'נסה שנית');
       setGoogleLoading(false);
     }
   };

@@ -30,12 +30,14 @@ function firebaseErrorToHebrew(code: string): string {
   }
 }
 
-async function doSession(): Promise<void> {
+/** Creates server session cookie. Throws if it fails — caller must handle. */
+async function createServerSession(): Promise<void> {
   const token = await getIdToken();
-  if (token) {
-    await createSession(token).catch(() => {
-      // session API failure is non-fatal — user is authenticated in Firebase
-    });
+  if (!token) throw new Error('No Firebase token');
+  const res = await createSession(token);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `Session API ${res.status}`);
   }
 }
 
@@ -48,25 +50,29 @@ export default function LoginPage() {
   const { error } = useToast();
   const { t } = useLang();
 
+  // Handle Google redirect result (popup-blocked fallback)
   useEffect(() => {
     getGoogleRedirectResult()
       .then(async (user) => {
         if (!user) { setGoogleLoading(false); return; }
-        await doSession();
-        router.push('/dashboard');
+        try {
+          await createServerSession();
+          router.replace('/dashboard');
+        } catch (e) {
+          error('כניסה נכשלה', e instanceof Error ? e.message : 'נסה שנית');
+          setGoogleLoading(false);
+        }
       })
       .catch(() => setGoogleLoading(false));
-  }, [router]);
+  }, [router, error]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // This can throw — only Firebase Auth errors should show a message
       await signIn(email, password);
-      // Session is best-effort; don't let it block navigation
-      await doSession();
-      router.push('/dashboard');
+      await createServerSession();
+      router.replace('/dashboard');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
       error('כניסה נכשלה', firebaseErrorToHebrew(code));
@@ -78,12 +84,12 @@ export default function LoginPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      await doSession();
-      router.push('/dashboard');
+      await createServerSession();
+      router.replace('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
-      if (msg === 'REDIRECT') return;
-      error('כניסה עם Google נכשלה', 'נסה שנית');
+      if (msg === 'REDIRECT') return; // redirect flow — page will reload
+      error('כניסה עם Google נכשלה', msg || 'נסה שנית');
       setGoogleLoading(false);
     }
   };
