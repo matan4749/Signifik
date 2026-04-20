@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifySession, getAdminApp } from '@/lib/firebase/admin';
+import { verifySession, getAdminApp, getAdminFirestore } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 
 const MAX_FILE_SIZE_MB = 5;
@@ -32,6 +32,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'file, siteId, and type are required' }, { status: 400 });
     }
 
+    // Allow draft- prefix for new sites being created in the wizard
+    if (!siteId.startsWith('draft-')) {
+      const db = getAdminFirestore();
+      const siteDoc = await db.collection('sites').doc(siteId).get();
+      if (!siteDoc.exists || siteDoc.data()?.ownerId !== uid) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+    }
+
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json({ error: 'File type not allowed' }, { status: 400 });
     }
@@ -58,15 +67,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Make publicly readable
     await fileRef.makePublic();
 
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
-
     return NextResponse.json({ url: publicUrl });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('Upload error:', msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

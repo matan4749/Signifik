@@ -176,11 +176,11 @@ export async function disableSite(projectId: string, slug: string): Promise<void
     body: offlineHtml,
   });
 
+  // Note: projectId must NOT be in body for Vercel API v13
   await vercelFetch('/v13/deployments', {
     method: 'POST',
     body: {
       name: `signifik-${slug}`,
-      projectId,
       target: 'production',
       files: [{ file: 'index.html', sha, size }],
       projectSettings: { framework: null, outputDirectory: null },
