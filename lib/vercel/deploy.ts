@@ -87,15 +87,15 @@ export async function uploadFiles(
 // ── Deployment ───────────────────────────────────────────────────────────────
 
 export async function createDeployment(
-  projectId: string,
+  _projectId: string,
   slug: string,
   uploadedFiles: Array<{ file: string; sha: string; size: number }>
 ): Promise<VercelDeployment> {
+  // Note: projectId must NOT be in the body for Vercel API v13 — use project name instead
   return vercelFetch<VercelDeployment>('/v13/deployments', {
     method: 'POST',
     body: {
       name: `signifik-${slug}`,
-      projectId,
       target: 'production',
       files: uploadedFiles.map(({ file, sha, size }) => ({ file, sha, size })),
       projectSettings: { framework: null, outputDirectory: null },
