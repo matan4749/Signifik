@@ -22,28 +22,33 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ si
     const siteData = siteDoc.data()!;
     await db.collection('sites').doc(siteId).update({ 'deployment.status': 'building' });
 
-    (async () => {
-      try {
-        const { projectId, deploymentId, url } = await deploySite(
-          siteData.config,
-          siteId,
-          siteData.slug
-        );
+    // Run synchronously — Vercel Hobby plan kills background tasks
+    try {
+      const { projectId, deploymentId, url } = await deploySite(
+        siteData.config,
+        siteId,
+        siteData.slug
+      );
 
-        await db.collection('sites').doc(siteId).update({
-          'deployment.status': 'ready',
-          'deployment.vercelProjectId': projectId,
-          'deployment.vercelDeploymentId': deploymentId,
-          'deployment.url': url,
-          'deployment.deployedAt': new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      } catch (error) {
-        await db.collection('sites').doc(siteId).update({ 'deployment.status': 'error' });
-      }
-    })();
+      await db.collection('sites').doc(siteId).update({
+        'deployment.status': 'ready',
+        'deployment.vercelProjectId': projectId,
+        'deployment.vercelDeploymentId': deploymentId,
+        'deployment.url': url,
+        'deployment.deployedAt': new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
-    return NextResponse.json({ success: true, message: 'Deployment started' });
+      return NextResponse.json({ success: true, url });
+    } catch (deployError) {
+      const errMsg = deployError instanceof Error ? deployError.message : String(deployError);
+      console.error('Redeploy error for site', siteId, ':', errMsg);
+      await db.collection('sites').doc(siteId).update({
+        'deployment.status': 'error',
+        'deployment.error': errMsg,
+      });
+      return NextResponse.json({ error: errMsg }, { status: 500 });
+    }
   } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }

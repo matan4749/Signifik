@@ -4,19 +4,30 @@ import { useState, useEffect, useRef } from 'react';
 import type { Site, DeploymentStatus } from '@/types/site';
 
 const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max
 
 export function useDeployStatus(siteId: string | null) {
   const [site, setSite] = useState<Site | null>(null);
   const [status, setStatus] = useState<DeploymentStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAt = useRef<number>(Date.now());
 
   const isDone = status === 'ready' || status === 'error' || status === 'disabled';
 
   useEffect(() => {
     if (!siteId) return;
+    startedAt.current = Date.now();
 
     const fetchStatus = async () => {
+      // Stop after timeout
+      if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setStatus('error');
+        setErrorMessage('Deployment timed out');
+        return;
+      }
+
       try {
         const res = await fetch(`/api/sites/${siteId}`);
         if (!res.ok) return;

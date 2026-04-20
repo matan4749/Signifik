@@ -64,49 +64,47 @@ export async function POST(req: NextRequest) {
       slug,
       customDomain: customDomain || null,
       config,
-      deployment: { status: 'pending' },
+      deployment: { status: 'building' },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    // Deploy asynchronously
+    // Deploy synchronously — Vercel Hobby plan kills background tasks immediately
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.data();
 
-    (async () => {
-      try {
-        await db.collection('sites').doc(siteId).update({ 'deployment.status': 'building' });
-        const { projectId, deploymentId, url } = await deploySite(config, siteId, slug);
+    try {
+      const { projectId, deploymentId, url } = await deploySite(config, siteId, slug);
 
-        if (customDomain) {
-          try { await addDomainToProject(projectId, customDomain); } catch { /* non-fatal */ }
-        }
-
-        await db.collection('sites').doc(siteId).update({
-          'deployment.status': 'ready',
-          'deployment.vercelProjectId': projectId,
-          'deployment.vercelDeploymentId': deploymentId,
-          'deployment.url': url,
-          'deployment.deployedAt': new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-
-        await sendNewSiteLaunchedEmail({
-          customerName: userData?.displayName || '',
-          customerEmail: userData?.email || '',
-          businessName: config.businessName,
-          siteUrl: url,
-          siteId,
-        });
-      } catch (deployError) {
-        const errMsg = deployError instanceof Error ? deployError.message : String(deployError);
-        console.error('Deploy error for site', siteId, ':', errMsg);
-        await db.collection('sites').doc(siteId).update({
-          'deployment.status': 'error',
-          'deployment.error': errMsg,
-        });
+      if (customDomain) {
+        try { await addDomainToProject(projectId, customDomain); } catch { /* non-fatal */ }
       }
-    })();
+
+      await db.collection('sites').doc(siteId).update({
+        'deployment.status': 'ready',
+        'deployment.vercelProjectId': projectId,
+        'deployment.vercelDeploymentId': deploymentId,
+        'deployment.url': url,
+        'deployment.deployedAt': new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      sendNewSiteLaunchedEmail({
+        customerName: userData?.displayName || '',
+        customerEmail: userData?.email || '',
+        businessName: config.businessName,
+        siteUrl: url,
+        siteId,
+      }).catch(() => {});
+    } catch (deployError) {
+      const errMsg = deployError instanceof Error ? deployError.message : String(deployError);
+      console.error('Deploy error for site', siteId, ':', errMsg);
+      await db.collection('sites').doc(siteId).update({
+        'deployment.status': 'error',
+        'deployment.error': errMsg,
+      });
+      return NextResponse.json({ siteId, error: errMsg }, { status: 500 });
+    }
 
     return NextResponse.json({ siteId }, { status: 201 });
   } catch (err) {

@@ -48,20 +48,19 @@ export default function BuilderPage() {
         body: JSON.stringify({
           config: state.config,
           slug: state.slug,
-          customDomain: state.config.contact?.wazeAddress ? undefined : undefined,
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
-        error('Deploy failed', data.error || 'Please try again');
+        error('פריסה נכשלה', data.error || 'נסה שנית');
         return;
       }
 
-      const { siteId } = await res.json();
-      setDeployed(siteId);
+      setDeployed(data.siteId);
     } catch {
-      error('Deploy failed', 'Network error. Please try again.');
+      error('פריסה נכשלה', 'שגיאת רשת. נסה שנית.');
     } finally {
       setSubmitting(false);
     }
