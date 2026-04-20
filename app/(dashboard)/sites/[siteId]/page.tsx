@@ -9,7 +9,6 @@ import { Button } from '@/components/ui';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { DeployStatusBadge } from '@/components/dashboard/DeployStatusBadge';
 import { InsightWidget } from '@/components/dashboard/InsightWidget';
-import { subscribeToSite } from '@/lib/firebase/firestore';
 import { staggerContainer, staggerItem } from '@/lib/utils/motion';
 import type { Site } from '@/types/site';
 import { useLang } from '@/lib/i18n/context';
@@ -24,12 +23,14 @@ export default function SiteDetailPage() {
   const { t } = useLang();
 
   useEffect(() => {
-    const unsub = subscribeToSite(siteId, (s) => {
-      if (!s) { router.push('/dashboard'); return; }
-      setSite(s);
-      setLoading(false);
-    });
-    return unsub;
+    fetch(`/api/sites/${siteId}`)
+      .then(async (res) => {
+        if (!res.ok) { router.push('/dashboard'); return; }
+        const data = await res.json() as Site;
+        setSite({ ...data, id: siteId });
+        setLoading(false);
+      })
+      .catch(() => router.push('/dashboard'));
   }, [siteId, router]);
 
   if (loading) {
@@ -80,7 +81,6 @@ export default function SiteDetailPage() {
         </Link>
       </div>
 
-      {/* Analytics widget */}
       <motion.div variants={staggerItem}>
         <InsightWidget siteId={siteId} siteName={site.config.businessName} />
       </motion.div>
