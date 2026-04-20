@@ -29,7 +29,7 @@ export function useDeployStatus(siteId: string | null) {
       }
 
       try {
-        const res = await fetch(`/api/sites/${siteId}`);
+        const res = await fetch(`/api/sites/${siteId}`, { credentials: 'include' });
         if (!res.ok) return;
         const data = (await res.json()) as Site;
         setSite(data);

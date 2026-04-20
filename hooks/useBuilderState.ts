@@ -9,6 +9,7 @@ export interface BuilderState {
   step: number;
   config: SiteConfig;
   slug: string;
+  customDomain?: string;
   errors: Partial<Record<string, string>>;
   isSubmitting: boolean;
   deployedSiteId: string | null;
@@ -60,6 +61,7 @@ type Action =
   | { type: 'SET_MEDIA'; media: Partial<SiteConfig['media']> }
   | { type: 'SET_SEO'; seo: Partial<SiteConfig['seo']> }
   | { type: 'SET_SLUG'; slug: string }
+  | { type: 'SET_CUSTOM_DOMAIN'; customDomain?: string }
   | { type: 'SET_ERRORS'; errors: Partial<Record<string, string>> }
   | { type: 'SET_SUBMITTING'; value: boolean }
   | { type: 'SET_DEPLOYED'; siteId: string }
@@ -121,6 +123,8 @@ function reducer(state: BuilderState, action: Action): BuilderState {
       };
     case 'SET_SLUG':
       return { ...state, slug: action.slug };
+    case 'SET_CUSTOM_DOMAIN':
+      return { ...state, customDomain: action.customDomain };
     case 'SET_ERRORS':
       return { ...state, errors: action.errors };
     case 'SET_SUBMITTING':
@@ -179,6 +183,11 @@ export function useBuilderState() {
 
   const setSlug = useCallback((slug: string) => dispatch({ type: 'SET_SLUG', slug }), []);
 
+  const setCustomDomain = useCallback(
+    (customDomain?: string) => dispatch({ type: 'SET_CUSTOM_DOMAIN', customDomain }),
+    []
+  );
+
   const setErrors = useCallback(
     (errors: Partial<Record<string, string>>) => dispatch({ type: 'SET_ERRORS', errors }),
     []
@@ -209,6 +218,7 @@ export function useBuilderState() {
     setMedia,
     setSEO,
     setSlug,
+    setCustomDomain,
     setErrors,
     setSubmitting,
     setDeployed,

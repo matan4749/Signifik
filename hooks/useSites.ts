@@ -14,7 +14,7 @@ export function useSites(uid: string | undefined) {
       return;
     }
     try {
-      const res = await fetch('/api/sites');
+      const res = await fetch('/api/sites', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setSites(data.sites ?? []);

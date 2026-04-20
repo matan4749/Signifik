@@ -24,7 +24,7 @@ export default function SiteDetailPage() {
   const { t } = useLang();
 
   useEffect(() => {
-    fetch(`/api/sites/${siteId}`)
+    fetch(`/api/sites/${siteId}`, { credentials: 'include' })
       .then(async (res) => {
         if (!res.ok) { router.push('/dashboard'); return; }
         const data = await res.json() as Site;

@@ -30,7 +30,7 @@ export function useAnalytics(siteId: string | undefined, days = 14): {
       return;
     }
     try {
-      const res = await fetch(`/api/analytics?siteId=${siteId}&days=${days}`);
+      const res = await fetch(`/api/analytics?siteId=${siteId}&days=${days}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setSummary(data.summary ?? null);

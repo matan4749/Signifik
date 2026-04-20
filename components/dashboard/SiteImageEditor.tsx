@@ -59,6 +59,7 @@ export function SiteImageEditor({ siteId, media, hasGallery, onChange }: SiteIma
     };
     await fetch(`/api/sites/${siteId}`, {
       method: 'PATCH',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: { media: next } }),
     });
@@ -69,6 +70,7 @@ export function SiteImageEditor({ siteId, media, hasGallery, onChange }: SiteIma
     const next: SiteMedia = { ...media, [field]: undefined };
     await fetch(`/api/sites/${siteId}`, {
       method: 'PATCH',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config: { media: next } }),
     });

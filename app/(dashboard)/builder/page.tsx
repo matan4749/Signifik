@@ -21,7 +21,7 @@ export default function BuilderPage() {
   const {
     state,
     nextStep, prevStep, goToStep,
-    setBusinessInfo, setDesign, toggleComponent, setContact, setHero, setMedia, setSEO, setSlug,
+    setBusinessInfo, setDesign, toggleComponent, setContact, setHero, setMedia, setSEO, setSlug, setCustomDomain,
     setSubmitting, setDeployed,
   } = useBuilderState();
 
@@ -44,10 +44,12 @@ export default function BuilderPage() {
     try {
       const res = await fetch('/api/sites', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           config: state.config,
           slug: state.slug,
+          customDomain: state.customDomain,
         }),
       });
 
@@ -128,6 +130,7 @@ export default function BuilderPage() {
           slug={state.slug}
           onSubmit={(slug, customDomain) => {
             setSlug(slug);
+            setCustomDomain(customDomain);
             nextStep();
           }}
         />
@@ -136,6 +139,7 @@ export default function BuilderPage() {
         <Step6_Review
           config={state.config}
           slug={state.slug}
+          customDomain={state.customDomain}
           isSubmitting={state.isSubmitting}
           onDeploy={handleDeploy}
         />

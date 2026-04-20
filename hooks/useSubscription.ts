@@ -14,7 +14,7 @@ export function useSubscription(uid: string | undefined) {
       return;
     }
     try {
-      const res = await fetch('/api/user');
+      const res = await fetch('/api/user', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setSubscription(data.subscription ?? null);

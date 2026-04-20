@@ -57,7 +57,7 @@ export default function EditSitePage() {
   const [accentColor, setAccentColor] = useState('#a78bfa');
 
   useEffect(() => {
-    fetch(`/api/sites/${siteId}`)
+    fetch(`/api/sites/${siteId}`, { credentials: 'include' })
       .then(async (res) => {
         if (!res.ok) { router.push('/dashboard'); return; }
         const s = await res.json() as Site;
@@ -89,6 +89,7 @@ export default function EditSitePage() {
     try {
       const res = await fetch(`/api/sites/${siteId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           config: {
@@ -113,7 +114,7 @@ export default function EditSitePage() {
     setRedeploying(true);
     try {
       await handleSave();
-      const res = await fetch(`/api/sites/${siteId}/deploy`, { method: 'POST' });
+      const res = await fetch(`/api/sites/${siteId}/deploy`, { method: 'POST', credentials: 'include' });
       if (!res.ok) throw new Error('Deploy failed');
       success(t.editor_redeploy_success, t.editor_redeploy_success_desc);
     } catch {
@@ -127,7 +128,7 @@ export default function EditSitePage() {
     if (!confirm(t.editor_delete_confirm(site?.config.businessName ?? ''))) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/sites/${siteId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/sites/${siteId}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error();
       success(t.editor_deleted, t.editor_deleted_desc);
       router.push('/dashboard');
