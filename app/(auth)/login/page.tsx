@@ -90,9 +90,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen liquid-bg flex items-center justify-center p-4">
-      <Link href="/" className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/70 transition-colors">
+      <Link href="/" className="fixed top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/70 transition-colors z-10">
         <ArrowLeft size={15} />
-        <span>חזרה</span>
+        <span className="hidden sm:inline">חזרה</span>
       </Link>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">

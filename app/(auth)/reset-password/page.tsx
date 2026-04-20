@@ -41,10 +41,10 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen liquid-bg flex items-center justify-center p-4">
       <Link
         href="/login"
-        className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/70 transition-colors"
+        className="fixed top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-1.5 text-sm text-white/30 hover:text-white/70 transition-colors z-10"
       >
         <ArrowLeft size={15} />
-        <span>{t.reset_back}</span>
+        <span className="hidden sm:inline">{t.reset_back}</span>
       </Link>
 
       <motion.div

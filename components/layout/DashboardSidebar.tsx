@@ -1,19 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Plus, Settings, CreditCard, LogOut } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Plus, Settings, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { signOut } from '@/lib/firebase/auth';
-import { useToast } from '@/components/ui/Toast';
 import { useLang } from '@/lib/i18n/context';
 import { LangToggle } from '@/components/ui/LangToggle';
 import { SignifikLogo } from '@/components/ui/SignifikLogo';
+import { UserAvatar } from '@/components/layout/UserAvatar';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { error } = useToast();
   const { t } = useLang();
 
   const navItems = [
@@ -23,22 +20,14 @@ export function DashboardSidebar() {
     { href: '/account/billing', label: t.sidebar_billing, icon: CreditCard },
   ];
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.push('/login');
-    } catch {
-      error('Sign out failed', 'Please try again');
-    }
-  };
-
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 flex flex-col border-r border-white/8 bg-gray-950/80 backdrop-blur-xl">
-      {/* Logo */}
-      <div className="flex items-center justify-center px-5 py-5 border-b border-white/8">
+    <aside className="fixed left-0 top-0 bottom-0 w-60 z-30 max-md:hidden flex flex-col border-r border-white/8 bg-gray-950/80 backdrop-blur-xl">
+      {/* Logo + avatar */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
         <Link href="/dashboard">
           <SignifikLogo height={24} />
         </Link>
+        <UserAvatar size={30} />
       </div>
 
       {/* Nav */}
@@ -63,18 +52,11 @@ export function DashboardSidebar() {
         })}
       </nav>
 
-      {/* Lang toggle + Sign out */}
-      <div className="px-3 pb-4 border-t border-white/8 pt-4 space-y-2">
+      {/* Lang toggle */}
+      <div className="px-3 pb-4 border-t border-white/8 pt-4">
         <div className="px-3">
           <LangToggle />
         </div>
-        <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/40 hover:text-white/70 hover:bg-white/6 transition-all duration-150"
-        >
-          <LogOut size={16} className="shrink-0" />
-          {t.sidebar_signout}
-        </button>
       </div>
     </aside>
   );
