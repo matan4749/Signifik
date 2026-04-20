@@ -1,37 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { useState, useEffect, useCallback } from 'react';
 import type { Subscription } from '@/types/user';
 
 export function useSubscription(uid: string | undefined) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchSubscription = useCallback(async () => {
     if (!uid) {
       setSubscription(null);
       setLoading(false);
       return;
     }
-
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', uid),
-      (snap) => {
-        const data = snap.data();
-        setSubscription(data?.subscription ?? null);
-        setLoading(false);
-      },
-      () => {
-        // Firestore permission error or network error — treat as no subscription
+    try {
+      const res = await fetch('/api/user');
+      if (res.ok) {
+        const data = await res.json();
+        setSubscription(data.subscription ?? null);
+      } else {
         setSubscription(null);
-        setLoading(false);
       }
-    );
-
-    return unsubscribe;
+    } catch {
+      setSubscription(null);
+    } finally {
+      setLoading(false);
+    }
   }, [uid]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchSubscription();
+  }, [fetchSubscription]);
 
   const isActive = subscription?.status === 'active' || subscription?.status === 'trialing';
   const isTrial = subscription?.status === 'trialing';
