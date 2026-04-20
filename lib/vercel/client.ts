@@ -10,7 +10,7 @@ export async function vercelFetch<T>(path: string, options: VercelApiOptions = {
   if (!token) throw new Error('VERCEL_TOKEN is not set');
 
   const url = new URL(path, VERCEL_API);
-  const teamId = process.env.VERCEL_TEAM_ID;
+  const teamId = process.env.VERCEL_TEAM_ID?.trim();
   if (teamId) url.searchParams.set('teamId', teamId);
 
   const res = await fetch(url.toString(), {

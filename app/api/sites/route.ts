@@ -99,10 +99,11 @@ export async function POST(req: NextRequest) {
           siteId,
         });
       } catch (deployError) {
-        console.error('Deploy error:', deployError);
+        const errMsg = deployError instanceof Error ? deployError.message : String(deployError);
+        console.error('Deploy error for site', siteId, ':', errMsg);
         await db.collection('sites').doc(siteId).update({
           'deployment.status': 'error',
-          'deployment.error': String(deployError),
+          'deployment.error': errMsg,
         });
       }
     })();

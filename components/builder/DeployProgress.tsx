@@ -10,6 +10,7 @@ import { useLang } from '@/lib/i18n/context';
 interface DeployProgressProps {
   status: DeploymentStatus;
   url?: string;
+  errorMessage?: string | null;
   onGoToDashboard: () => void;
 }
 
@@ -23,7 +24,7 @@ function getStepStatus(threshold: string, current: DeploymentStatus) {
   return 'pending';
 }
 
-export function DeployProgress({ status, url, onGoToDashboard }: DeployProgressProps) {
+export function DeployProgress({ status, url, errorMessage, onGoToDashboard }: DeployProgressProps) {
   const { t } = useLang();
   const isError = status === 'error';
   const isReady = status === 'ready';
@@ -65,6 +66,11 @@ export function DeployProgress({ status, url, onGoToDashboard }: DeployProgressP
               ? t.deploy_failed_sub
               : t.deploy_time_hint}
           </p>
+          {isError && errorMessage && (
+            <p className="text-red-400/70 text-xs mt-2 font-mono max-w-sm mx-auto break-all">
+              {errorMessage}
+            </p>
+          )}
         </motion.div>
 
         <div className="space-y-3 mb-8">

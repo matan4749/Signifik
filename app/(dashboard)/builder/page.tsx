@@ -25,14 +25,15 @@ export default function BuilderPage() {
     setSubmitting, setDeployed,
   } = useBuilderState();
 
-  const { site, status } = useDeployStatus(state.deployedSiteId);
+  const { site, status, errorMessage } = useDeployStatus(state.deployedSiteId);
 
   // Show deploy progress screen once deployment starts
   if (state.deployedSiteId) {
     return (
       <DeployProgress
         status={status}
-        url={site?.deployment.url}
+        url={site?.deployment?.url}
+        errorMessage={errorMessage}
         onGoToDashboard={() => router.push('/dashboard')}
       />
     );
