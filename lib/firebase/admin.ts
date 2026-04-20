@@ -2,18 +2,18 @@ import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-let adminApp: App;
+let _adminApp: App;
 
-function getAdminApp(): App {
-  if (adminApp) return adminApp;
+function initAdminApp(): App {
+  if (_adminApp) return _adminApp;
   if (getApps().length > 0) {
-    adminApp = getApps()[0];
-    return adminApp;
+    _adminApp = getApps()[0];
+    return _adminApp;
   }
 
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-  adminApp = initializeApp({
+  _adminApp = initializeApp({
     credential: cert({
       projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
@@ -21,15 +21,19 @@ function getAdminApp(): App {
     }),
   });
 
-  return adminApp;
+  return _adminApp;
+}
+
+export function getAdminApp(): App {
+  return initAdminApp();
 }
 
 export function getAdminAuth() {
-  return getAuth(getAdminApp());
+  return getAuth(initAdminApp());
 }
 
 export function getAdminFirestore() {
-  return getFirestore(getAdminApp());
+  return getFirestore(initAdminApp());
 }
 
 /**

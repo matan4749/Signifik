@@ -1,15 +1,13 @@
 'use client';
 
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from './client';
 import { MAX_FILE_SIZE_MB } from '@/lib/utils/constants';
 
 export type UploadType = 'logo' | 'hero' | 'gallery';
 
-function getStoragePath(uid: string, siteId: string, type: UploadType, filename: string): string {
-  return `sites/${uid}/${siteId}/${type}/${filename}`;
-}
-
+/**
+ * Uploads a site image through the server-side /api/upload route (Admin SDK).
+ * This bypasses Firebase Storage client rules entirely.
+ */
 export async function uploadSiteImage(
   uid: string,
   siteId: string,
@@ -20,24 +18,25 @@ export async function uploadSiteImage(
     throw new Error(`File exceeds ${MAX_FILE_SIZE_MB}MB limit`);
   }
 
-  const ext = file.name.split('.').pop() || 'jpg';
-  const filename = `${Date.now()}.${ext}`;
-  const path = getStoragePath(uid, siteId, type, filename);
-  const storageRef = ref(storage, path);
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('siteId', siteId);
+  formData.append('type', type);
 
-  await uploadBytes(storageRef, file, {
-    contentType: file.type,
-    customMetadata: { uploadedBy: uid },
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
   });
 
-  return getDownloadURL(storageRef);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Upload failed');
+  }
+
+  const { url } = await res.json();
+  return url;
 }
 
-export async function deleteSiteImage(url: string): Promise<void> {
-  try {
-    const storageRef = ref(storage, url);
-    await deleteObject(storageRef);
-  } catch {
-    // Ignore errors on delete
-  }
+export async function deleteSiteImage(_url: string): Promise<void> {
+  // Deletion is handled server-side — no-op on client
 }
