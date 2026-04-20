@@ -2,8 +2,11 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { onAuthStateChanged } from 'firebase/auth';
 import { LogOut, User } from 'lucide-react';
 import { signOut } from '@/lib/firebase/auth';
+import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/Toast';
 import { useLang } from '@/lib/i18n/context';
@@ -36,7 +39,13 @@ export function UserAvatar({ size = 32 }: UserAvatarProps) {
   const handleSignOut = async () => {
     setOpen(false);
     try {
-      await signOut();
+      // Wait for Firebase to confirm auth state is cleared before navigating
+      await new Promise<void>((resolve, reject) => {
+        const unsub = onAuthStateChanged(auth, (u) => {
+          if (!u) { unsub(); resolve(); }
+        });
+        signOut().catch((err) => { unsub(); reject(err); });
+      });
       router.push('/login');
     } catch {
       error('Sign out failed', 'Please try again');
@@ -65,15 +74,15 @@ export function UserAvatar({ size = 32 }: UserAvatarProps) {
         style={{ width: size, height: size }}
       >
         {photoUrl ? (
-          /* Google profile photo */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          /* Google profile photo — next/image handles CORS + optimization */
+          <Image
             src={photoUrl}
             alt={user.displayName ?? 'User'}
             width={size}
             height={size}
             className="object-cover w-full h-full"
             referrerPolicy="no-referrer"
+            unoptimized
           />
         ) : (
           /* Fallback: initials */

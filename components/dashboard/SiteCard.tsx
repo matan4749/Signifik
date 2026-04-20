@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ExternalLink, Settings, Globe } from 'lucide-react';
+import { ExternalLink, Settings, Globe, Image as ImageIcon } from 'lucide-react';
 import { DeployStatusBadge } from './DeployStatusBadge';
 import { spring, springSnappy } from '@/lib/utils/motion';
 import type { Site } from '@/types/site';
@@ -95,6 +95,15 @@ export function SiteCard({ site }: SiteCardProps) {
             </a>
           )}
           <div className="flex-1" />
+          {/* Images */}
+          <Link
+            href={`/sites/${site.id}`}
+            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-emerald-400 transition-colors"
+          >
+            <ImageIcon size={11} />
+            תמונות
+          </Link>
+          {/* Edit */}
           <Link
             href={`/builder/${site.id}`}
             className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors"
