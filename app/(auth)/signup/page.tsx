@@ -48,8 +48,10 @@ export default function SignupPage() {
   const { t } = useLang();
 
   useEffect(() => {
+    const timeout = setTimeout(() => setGoogleLoading(false), 3000);
     getGoogleRedirectResult()
       .then(async (user) => {
+        clearTimeout(timeout);
         if (!user) { setGoogleLoading(false); return; }
         try {
           await tryCreateSession();
@@ -64,7 +66,8 @@ export default function SignupPage() {
           setGoogleLoading(false);
         }
       })
-      .catch(() => setGoogleLoading(false));
+      .catch(() => { clearTimeout(timeout); setGoogleLoading(false); });
+    return () => clearTimeout(timeout);
   }, [router, error]);
 
   const handleSubmit = async (e: React.FormEvent) => {

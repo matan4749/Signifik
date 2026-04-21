@@ -55,14 +55,18 @@ export default function LoginPage() {
   const { t } = useLang();
 
   // Handle Google redirect result (popup-blocked fallback)
+  // Timeout ensures the button is never permanently disabled if Firebase hangs
   useEffect(() => {
+    const timeout = setTimeout(() => setGoogleLoading(false), 3000);
     getGoogleRedirectResult()
       .then(async (user) => {
+        clearTimeout(timeout);
         if (!user) { setGoogleLoading(false); return; }
         await tryCreateSession();
         router.replace('/dashboard');
       })
-      .catch(() => setGoogleLoading(false));
+      .catch(() => { clearTimeout(timeout); setGoogleLoading(false); });
+    return () => clearTimeout(timeout);
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {

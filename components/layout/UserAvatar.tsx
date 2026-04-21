@@ -3,10 +3,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { onAuthStateChanged } from 'firebase/auth';
 import { LogOut, User } from 'lucide-react';
 import { signOut } from '@/lib/firebase/auth';
-import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/Toast';
 import { useLang } from '@/lib/i18n/context';
@@ -39,13 +37,7 @@ export function UserAvatar({ size = 32 }: UserAvatarProps) {
   const handleSignOut = async () => {
     setOpen(false);
     try {
-      // Wait for Firebase to confirm auth state is cleared before navigating
-      await new Promise<void>((resolve, reject) => {
-        const unsub = onAuthStateChanged(auth, (u) => {
-          if (!u) { unsub(); resolve(); }
-        });
-        signOut().catch((err) => { unsub(); reject(err); });
-      });
+      await signOut();
       router.push('/login');
     } catch {
       error('Sign out failed', 'Please try again');
