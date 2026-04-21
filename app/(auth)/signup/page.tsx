@@ -78,8 +78,9 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      await signUp(email, password, name);
-      await tryCreateSession();
+      const user = await signUp(email, password, name);
+      const token = await user.getIdToken(true);
+      await createSession(token);
       fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

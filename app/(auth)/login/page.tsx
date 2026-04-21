@@ -73,8 +73,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn(email, password);
-      await tryCreateSession();
+      const user = await signIn(email, password);
+      const token = await user.getIdToken(true);
+      await createSession(token);
       router.replace('/dashboard');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
