@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
     const storagePath = `sites/${uid}/${siteId}/${type}/${filename}`;
 
     const bucket = getStorage(getAdminApp()).bucket();
-    console.log('[upload] bucket name:', bucket.name, '| env:', process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const fileRef = bucket.file(storagePath);
@@ -66,10 +65,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await fileRef.makePublic();
+    // Generate a long-lived signed URL (10 years) instead of makePublic()
+    // makePublic() requires storage.objects.update IAM permission which is not
+    // available on firebasestorage.app buckets by default.
+    const [signedUrl] = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 10 * 365 * 24 * 60 * 60 * 1000, // 10 years
+    });
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
-    return NextResponse.json({ url: publicUrl });
+    return NextResponse.json({ url: signedUrl });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('Upload error:', msg);
