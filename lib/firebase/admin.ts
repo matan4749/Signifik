@@ -19,7 +19,12 @@ function initAdminApp(): App {
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
       privateKey,
     }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    // Firebase Storage bucket: the .appspot.com form is the GCS bucket name.
+    // The newer .firebasestorage.app domain is a CDN alias — not a GCS bucket name.
+    storageBucket: (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? '').replace(
+      /\.firebasestorage\.app$/,
+      '.appspot.com'
+    ),
   });
 
   return _adminApp;
