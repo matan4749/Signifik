@@ -18,7 +18,7 @@
 
 ## ✨ What is Signifik?
 
-Signifik is a **production-ready SaaS platform** built with the latest bleeding-edge stack — Next.js 16, React 19, and Tailwind CSS 4. It features full user authentication, Stripe subscription payments, and a polished dashboard experience.
+Signifik היא **פלטפורמת SaaS מודרנית** לבניית דפי נחיתה עסקיים — ללא קוד, ללא עיצובים, ללא מצעד. Built with the latest bleeding-edge stack — Next.js 16, React 19, and Tailwind CSS 4.
 
 > 🔗 **Live Demo:** [signifik.vercel.app](https://signifik.vercel.app)
 
@@ -30,19 +30,11 @@ Signifik is a **production-ready SaaS platform** built with the latest bleeding-
   <table>
     <tr>
       <td align="center"><strong>Landing Page</strong></td>
-      <td align="center"><strong>Dashboard</strong></td>
+      <td align="center"><strong>Features Section</strong></td>
     </tr>
     <tr>
-      <td><img src="https://via.placeholder.com/480x300/1a1a2e/ffffff?text=Landing+Page" alt="Landing Page" width="480"/></td>
-      <td><img src="https://via.placeholder.com/480x300/16213e/ffffff?text=Dashboard" alt="Dashboard" width="480"/></td>
-    </tr>
-    <tr>
-      <td align="center"><strong>Auth Flow</strong></td>
-      <td align="center"><strong>Payments</strong></td>
-    </tr>
-    <tr>
-      <td><img src="https://via.placeholder.com/480x300/0f3460/ffffff?text=Auth+Flow" alt="Auth" width="480"/></td>
-      <td><img src="https://via.placeholder.com/480x300/533483/ffffff?text=Stripe+Checkout" alt="Payments" width="480"/></td>
+      <td><img src="https://raw.githubusercontent.com/matan4749/Signifik/main/docs/screenshot-home.png" width="480"/></td>
+      <td><img src="https://raw.githubusercontent.com/matan4749/Signifik/main/docs/screenshot-features.png" width="480"/></td>
     </tr>
   </table>
 </div>
@@ -53,11 +45,11 @@ Signifik is a **production-ready SaaS platform** built with the latest bleeding-
 
 - 🔐 **Authentication** — Sign in / Sign up with Firebase Auth, persistent sessions via secure cookies
 - 💳 **Stripe Payments** — Full subscription billing with webhooks
-- 📊 **Dashboard** — Protected routes with real-time data from Firestore
+- 📊 **Dashboard** — Protected routes with real-time Firestore data
 - 📧 **Email** — Transactional emails via SendGrid
 - 🎨 **Modern UI** — Framer Motion animations, Radix UI components, Tailwind CSS 4
-- 📱 **Responsive** — Mobile-first design with smooth transitions
-- ☁️ **Cloud Storage** — Firebase Storage for file uploads with signed URLs
+- 📱 **Responsive** — Mobile-first with smooth transitions
+- ☁️ **Cloud Storage** — Firebase Storage with signed URLs
 
 <br/>
 
@@ -81,18 +73,11 @@ Signifik is a **production-ready SaaS platform** built with the latest bleeding-
 ## 📦 Getting Started
 
 ```bash
-# Clone the repo
 git clone https://github.com/matan4749/Signifik.git
 cd Signifik
-
-# Install dependencies
 npm install
-
-# Set up environment variables
 cp .env.example .env.local
 # Fill in Firebase, Stripe, and SendGrid keys
-
-# Run locally
 npm run dev
 ```
 
@@ -120,20 +105,15 @@ Signifik/
 ## 🌍 Environment Variables
 
 ```env
-# Firebase
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 FIREBASE_ADMIN_PRIVATE_KEY=
 FIREBASE_ADMIN_CLIENT_EMAIL=
-
-# Stripe
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-
-# SendGrid
 SENDGRID_API_KEY=
 ```
 
